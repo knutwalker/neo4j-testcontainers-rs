@@ -90,7 +90,7 @@ jobs:
 
   release:
     name: Release
-    needs: [check, fmt, clippy, msrv, readme]
+    needs: [check, fmt, clippy, msrv]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
