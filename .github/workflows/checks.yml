@@ -120,4 +120,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p neo4j-testcontainer
+        run: cargo publish -p neo4j_testcontainers

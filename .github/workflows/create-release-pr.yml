@@ -37,4 +37,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ inputs.version }}
-          crate-name: neo4j-testcontainer
+          crate-name: neo4j_testcontainers
