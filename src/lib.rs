@@ -42,6 +42,30 @@
 use std::collections::HashMap;
 use testcontainers::{core::WaitFor, Container, Image};
 
+#[derive(Clone, Copy, Debug)]
+pub enum Neo4jLabsPlugin {
+    Apoc,
+    ApocCore,
+    Bloom,
+    Streams,
+    GraphDataScience,
+    NeoSemantics,
+}
+
+impl Neo4jLabsPlugin {
+
+    fn get_value(&self) -> String {
+        match self {
+            Neo4jLabsPlugin::Apoc => {"apoc"}
+            Neo4jLabsPlugin::ApocCore => {"apoc-core"}
+            Neo4jLabsPlugin::Bloom => {"bloom"}
+            Neo4jLabsPlugin::Streams => {"streams"}
+            Neo4jLabsPlugin::GraphDataScience => {"graph-data-science"}
+            Neo4jLabsPlugin::NeoSemantics => {"n10s"}
+        }.to_owned()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neo4j {
     version: String,
@@ -72,6 +96,29 @@ impl Neo4j {
             Some(pass.to_owned()),
             Some(version.to_owned()),
         )
+    }
+
+    /// Define Neo4j lab plugins to get started with the database.
+    /// Returns new instance.
+    #[must_use]
+    pub fn with_neo4j_labs_plugin(&self, plugins: Vec<Neo4jLabsPlugin>) -> Self {
+        let mut env_vars = self.env_vars.clone();
+
+        let plugin_names = plugins.into_iter()
+            .map(|p| format!("\"{}\"", p.get_value()))
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let plugin_definition = format!("[{}]", plugin_names);
+
+        env_vars.insert("NEO4JLABS_PLUGINS".to_owned(), plugin_definition);
+
+        Self {
+            version: self.version.clone(),
+            user: self.user.clone(),
+            pass: self.pass.clone(),
+            env_vars,
+        }
     }
 
     fn new(user: Option<String>, pass: Option<String>, version: Option<String>) -> Self {
@@ -220,5 +267,22 @@ impl Image for Neo4j {
 
     fn env_vars(&self) -> Box<dyn Iterator<Item = (&String, &String)> + '_> {
         Box::new(self.env_vars.iter())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Neo4j, Neo4jLabsPlugin};
+
+    #[test]
+    fn single_plugin_definition() {
+        let neo4j = Neo4j::default().with_neo4j_labs_plugin(vec![Neo4jLabsPlugin::Apoc]);
+        assert_eq!(neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(), "[\"apoc\"]");
+    }
+
+    #[test]
+    fn multiple_plugin_definition() {
+        let neo4j = Neo4j::default().with_neo4j_labs_plugin(vec![Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom]);
+        assert_eq!(neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(), "[\"apoc\",\"bloom\"]");
     }
 }
