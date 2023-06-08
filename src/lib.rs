@@ -131,7 +131,8 @@ impl Neo4j {
         &self.pass
     }
 
-    // Return the connection URI to connect to the Neo4j server over IPv4.
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
+    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv4()` instead.")]
     #[must_use]
     pub fn uri_ipv4(container: &Container<'_, Self>) -> String {
         let bolt_port = container
@@ -141,7 +142,8 @@ impl Neo4j {
         format!("bolt://127.0.0.1:{}", bolt_port)
     }
 
-    // Return the connection URI to connect to the Neo4j server over IPv6.
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
+    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv6()` instead.")]
     #[must_use]
     pub fn uri_ipv6(container: &Container<'_, Self>) -> String {
         let bolt_port = container
@@ -149,6 +151,46 @@ impl Neo4j {
             .map_to_host_port_ipv6(7687)
             .expect("Image exposes 7687 by default");
         format!("bolt://[::1]:{}", bolt_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
+    #[must_use]
+    pub fn bolt_uri_ipv4(container: &Container<'_, Self>) -> String {
+        let bolt_port = container
+            .ports()
+            .map_to_host_port_ipv4(7687)
+            .expect("Image exposes 7687 by default");
+        format!("bolt://127.0.0.1:{}", bolt_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
+    #[must_use]
+    pub fn bolt_uri_ipv6(container: &Container<'_, Self>) -> String {
+        let bolt_port = container
+            .ports()
+            .map_to_host_port_ipv6(7687)
+            .expect("Image exposes 7687 by default");
+        format!("bolt://[::1]:{}", bolt_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv4.
+    #[must_use]
+    pub fn http_uri_ipv4(container: &Container<'_, Self>) -> String {
+        let http_port = container
+            .ports()
+            .map_to_host_port_ipv4(7474)
+            .expect("Image exposes 7474 by default");
+        format!("http://127.0.0.1:{}", http_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv6.
+    #[must_use]
+    pub fn http_uri_ipv6(container: &Container<'_, Self>) -> String {
+        let http_port = container
+            .ports()
+            .map_to_host_port_ipv6(7474)
+            .expect("Image exposes 7474 by default");
+        format!("http://[::1]:{}", http_port)
     }
 }
 

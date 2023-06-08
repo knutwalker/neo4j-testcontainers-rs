@@ -23,7 +23,7 @@ use neo4j_testcontainers::Neo4j;
 
 let docker = Cli::default();
 let container = docker.run(Neo4j::default());
-let uri = Neo4j::uri_ipv4(&container);
+let uri = Neo4j::bolt_uri_ipv4(&container);
 let auth_user = container.image().user();
 let auth_pass = container.image().pass();
 // connect to Neo4j with the uri, user and pass
