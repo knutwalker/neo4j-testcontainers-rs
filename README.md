@@ -21,7 +21,7 @@ This image is based on the official [Neo4j][__link1] image. The default user is 
 use testcontainers::clients::Cli;
 use neo4j_testcontainers::Neo4j;
 
-let cli = Cli::default();
+let docker = Cli::default();
 let container = docker.run(Neo4j::default());
 let uri = Neo4j::uri_ipv4(&container);
 let auth_user = container.image().user();
