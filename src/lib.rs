@@ -132,10 +132,7 @@ impl Neo4j {
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
-    #[deprecated(
-        since = "0.2.0",
-        note = "Use `bolt_uri_ipv4()` instead."
-    )]
+    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv4()` instead.")]
     #[must_use]
     pub fn uri_ipv4(container: &Container<'_, Self>) -> String {
         let bolt_port = container
@@ -146,10 +143,7 @@ impl Neo4j {
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
-    #[deprecated(
-        since = "0.2.0",
-        note = "Use `bolt_uri_ipv6()` instead."
-    )]
+    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv6()` instead.")]
     #[must_use]
     pub fn uri_ipv6(container: &Container<'_, Self>) -> String {
         let bolt_port = container
