@@ -51,7 +51,7 @@ pub enum Neo4jLabsPlugin {
     Streams,
     GraphDataScience,
     NeoSemantics,
-    Custom(String)
+    Custom(String),
 }
 
 impl std::fmt::Display for Neo4jLabsPlugin {
@@ -109,14 +109,16 @@ impl Neo4j {
             return self;
         }
 
-        let plugin_names = plugins.iter()
+        let plugin_names = plugins
+            .iter()
             .map(|p| format!("\"{}\"", p))
             .collect::<Vec<String>>()
             .join(",");
 
         let plugin_definition = format!("[{}]", plugin_names);
 
-        self.env_vars.insert("NEO4JLABS_PLUGINS".to_owned(), plugin_definition);
+        self.env_vars
+            .insert("NEO4JLABS_PLUGINS".to_owned(), plugin_definition);
 
         self
     }
@@ -277,12 +279,19 @@ mod tests {
     #[test]
     fn single_plugin_definition() {
         let neo4j = Neo4j::default().with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc]);
-        assert_eq!(neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(), "[\"apoc\"]");
+        assert_eq!(
+            neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
+            "[\"apoc\"]"
+        );
     }
 
     #[test]
     fn multiple_plugin_definition() {
-        let neo4j = Neo4j::default().with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom]);
-        assert_eq!(neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(), "[\"apoc\",\"bloom\"]");
+        let neo4j = Neo4j::default()
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom]);
+        assert_eq!(
+            neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
+            "[\"apoc\",\"bloom\"]"
+        );
     }
 }
