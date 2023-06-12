@@ -362,4 +362,17 @@ mod tests {
             "[\"apoc\",\"bloom\"]"
         );
     }
+
+    #[test]
+    fn multiple_wiht_plugin_calls() {
+        let neo4j = Neo4j::default()
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Bloom])
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
+            .build();
+        assert_eq!(
+            neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
+            "[\"apoc\",\"bloom\"]"
+        );
+    }
 }
