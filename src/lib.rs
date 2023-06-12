@@ -118,10 +118,20 @@ impl Neo4j {
 
     /// Set the Neo4j version to use.
     /// The value must be an existing Neo4j version tag.
-    pub fn with_version(mut self, version: impl Into<String>) -> Self {
+    pub fn with_version(
+        mut self,
+        version: impl Into<String>,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send + 'static>> {
         let version: String = version.into();
+
+        let version_valid =
+            lenient_semver::parse_into::<'_, ValidateVersion>(&version).unwrap_or(false);
+        if !version_valid {
+            return Err(format!("Invalid version: {}", version).into());
+        }
+
         self.version = Value::Value(version);
-        self
+        Ok(self)
     }
 
     /// Set the username to use.
@@ -146,7 +156,7 @@ impl Neo4j {
     #[deprecated(since = "0.2.0", note = "Use `from_env().with_version()` instead.")]
     #[must_use]
     pub fn from_version(version: &str) -> Self {
-        Self::from_env().with_version(version)
+        Self::from_env().with_version(version).unwrap()
     }
 
     /// Create a new instance of a Neo4j image with the version and given user and password.
@@ -158,6 +168,7 @@ impl Neo4j {
     pub fn from_auth_and_version(version: &str, user: &str, pass: &str) -> Self {
         Self::from_env()
             .with_version(version)
+            .unwrap()
             .with_user(user)
             .with_password(pass)
     }
@@ -191,6 +202,32 @@ enum Value {
     },
     Default(&'static str),
     Value(String),
+}
+
+struct ValidateVersion(bool);
+
+impl<'a> lenient_semver::VersionBuilder<'a> for ValidateVersion {
+    type Out = bool;
+
+    fn new() -> Self {
+        Self(true)
+    }
+
+    fn build(self) -> Self::Out {
+        self.0
+    }
+
+    fn add_additional(&mut self, _num: u64) {
+        self.0 = false;
+    }
+
+    fn add_pre_release(&mut self, _pre_release: &'a str) {
+        self.0 = false;
+    }
+
+    fn add_build(&mut self, _build: &'a str) {
+        self.0 = false;
+    }
 }
 
 impl Default for Neo4j {
