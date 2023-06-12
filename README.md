@@ -52,12 +52,13 @@ The following environment variables are supported:
  - `NEO4J_TEST_USER`: The default user to use for authentication.
  - `NEO4J_TEST_PASS`: The default password to use for authentication.
 
+
 ## Neo4j Labs Plugins
 
-Neo4j offers built-in support for Neo4j Labs plugins.
-The method `with_neo4j_labs_plugin` can be used to define them.
+Neo4j offers built-in support for Neo4j Labs plugins. The method `with_neo4j_labs_plugin` can be used to define them.
 
 Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and Neo Semantics.
+
 
 ## MSRV
 

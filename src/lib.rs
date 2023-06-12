@@ -39,9 +39,11 @@
 )]
 
 use std::collections::HashMap;
-use testcontainers::{core::WaitFor, Container, Image};
+use testcontainers::{core::WaitFor, Container, Image, RunnableImage};
 
-#[derive(Clone, Debug)]
+/// Available Neo4j plugins.
+/// See [Neo4j operations manual](https://neo4j.com/docs/operations-manual/current/docker/operations/#docker-neo4j-plugins) for more information.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Neo4jLabsPlugin {
     Apoc,
@@ -67,15 +69,15 @@ impl std::fmt::Display for Neo4jLabsPlugin {
     }
 }
 
+#[doc = include_str!("../doc/lib.md")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neo4j {
     version: String,
     user: String,
     pass: String,
-    env_vars: HashMap<String, String>,
+    plugins: Vec<Neo4jLabsPlugin>,
 }
 
-#[doc = include_str!("../doc/lib.md")]
 impl Neo4j {
     /// Create a new instance of a Neo4j 5 image with the default user and password.
     #[must_use]
@@ -83,7 +85,7 @@ impl Neo4j {
         Self::new(None, None, None)
     }
 
-    // Create a new instance of a Neo4j image of the given version with the default user and password.
+    /// Create a new instance of a Neo4j image of the given version with the default user and password.
     #[must_use]
     pub fn from_version(version: &str) -> Self {
         Self::new(None, None, Some(version.to_owned()))
@@ -102,21 +104,7 @@ impl Neo4j {
     /// Define Neo4j lab plugins to get started with the database.
     /// Returns new instance.
     pub fn with_neo4j_labs_plugin(mut self, plugins: &[Neo4jLabsPlugin]) -> Self {
-        if plugins.is_empty() {
-            return self;
-        }
-
-        let plugin_names = plugins
-            .iter()
-            .map(|p| format!("\"{}\"", p))
-            .collect::<Vec<String>>()
-            .join(",");
-
-        let plugin_definition = format!("[{}]", plugin_names);
-
-        self.env_vars
-            .insert("NEO4JLABS_PLUGINS".to_owned(), plugin_definition);
-
+        self.plugins.extend_from_slice(plugins);
         self
     }
 
@@ -141,46 +129,18 @@ impl Neo4j {
             .or_else(|| var(VERSION_VAR).ok())
             .unwrap_or_else(|| DEFAULT_VERSION_TAG.to_owned());
 
-        let mut env_vars = HashMap::new();
-        env_vars.insert("NEO4J_AUTH".to_owned(), format!("{}/{}", user, pass));
-
-        if pass.len() < 8 {
-            env_vars.insert(
-                "NEO4J_dbms_security_auth__minimum__password__length".to_owned(),
-                pass.len().to_string(),
-            );
-        }
-
         Self {
             version,
             user,
             pass,
-            env_vars,
+            plugins: Vec::new(),
         }
-    }
-
-    // Return the version of the Neo4j image.
-    #[must_use]
-    pub fn version(&self) -> &str {
-        &self.version
-    }
-
-    // Return the user of the Neo4j server.
-    #[must_use]
-    pub fn user(&self) -> &str {
-        &self.user
-    }
-
-    // Return the password of the Neo4j server.
-    #[must_use]
-    pub fn pass(&self) -> &str {
-        &self.pass
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
     #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv4()` instead.")]
     #[must_use]
-    pub fn uri_ipv4(container: &Container<'_, Self>) -> String {
+    pub fn uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
         let bolt_port = container
             .ports()
             .map_to_host_port_ipv4(7687)
@@ -191,7 +151,7 @@ impl Neo4j {
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
     #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv6()` instead.")]
     #[must_use]
-    pub fn uri_ipv6(container: &Container<'_, Self>) -> String {
+    pub fn uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
         let bolt_port = container
             .ports()
             .map_to_host_port_ipv6(7687)
@@ -201,7 +161,7 @@ impl Neo4j {
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
     #[must_use]
-    pub fn bolt_uri_ipv4(container: &Container<'_, Self>) -> String {
+    pub fn bolt_uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
         let bolt_port = container
             .ports()
             .map_to_host_port_ipv4(7687)
@@ -211,7 +171,7 @@ impl Neo4j {
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
     #[must_use]
-    pub fn bolt_uri_ipv6(container: &Container<'_, Self>) -> String {
+    pub fn bolt_uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
         let bolt_port = container
             .ports()
             .map_to_host_port_ipv6(7687)
@@ -221,7 +181,7 @@ impl Neo4j {
 
     /// Return the connection URI to connect to the Neo4j server via HTTP over IPv4.
     #[must_use]
-    pub fn http_uri_ipv4(container: &Container<'_, Self>) -> String {
+    pub fn http_uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
         let http_port = container
             .ports()
             .map_to_host_port_ipv4(7474)
@@ -231,7 +191,7 @@ impl Neo4j {
 
     /// Return the connection URI to connect to the Neo4j server via HTTP over IPv6.
     #[must_use]
-    pub fn http_uri_ipv6(container: &Container<'_, Self>) -> String {
+    pub fn http_uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
         let http_port = container
             .ports()
             .map_to_host_port_ipv6(7474)
@@ -246,7 +206,45 @@ impl Default for Neo4j {
     }
 }
 
-impl Image for Neo4j {
+/// The actual Neo4j testcontainers image type which is returned by `container.image()`
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Neo4jImage {
+    version: String,
+    user: String,
+    pass: String,
+    env_vars: HashMap<String, String>,
+}
+
+impl Neo4jImage {
+    fn new(version: String, user: String, pass: String, env_vars: HashMap<String, String>) -> Self {
+        Self {
+            version,
+            user,
+            pass,
+            env_vars,
+        }
+    }
+
+    /// Return the version of the Neo4j image.
+    #[must_use]
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    /// Return the user of the Neo4j server.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        &self.user
+    }
+
+    /// Return the password of the Neo4j server.
+    #[must_use]
+    pub fn pass(&self) -> &str {
+        &self.pass
+    }
+}
+
+impl Image for Neo4jImage {
     type Args = ();
 
     fn name(&self) -> String {
@@ -269,13 +267,85 @@ impl Image for Neo4j {
     }
 }
 
+impl Neo4j {
+    fn auth_env(&self) -> impl IntoIterator<Item = (String, String)> {
+        Some((
+            "NEO4J_AUTH".to_owned(),
+            format!("{}/{}", self.user, self.pass),
+        ))
+    }
+
+    fn plugins_env(&self) -> impl IntoIterator<Item = (String, String)> {
+        if self.plugins.is_empty() {
+            return None;
+        }
+
+        let plugin_names = self
+            .plugins
+            .iter()
+            .map(|p| format!("\"{}\"", p))
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let plugin_definition = format!("[{}]", plugin_names);
+
+        Some(("NEO4JLABS_PLUGINS".to_owned(), plugin_definition))
+    }
+
+    fn conf_env(&self) -> impl IntoIterator<Item = (String, String)> {
+        if self.pass.len() < 8 {
+            Some((
+                "NEO4J_dbms_security_auth__minimum__password__length".to_owned(),
+                self.pass.len().to_string(),
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn build(mut self) -> Neo4jImage {
+        self.plugins.sort();
+        self.plugins.dedup();
+
+        let mut env_vars = HashMap::new();
+
+        for (key, value) in self.auth_env() {
+            env_vars.insert(key, value);
+        }
+
+        for (key, value) in self.plugins_env() {
+            env_vars.insert(key, value);
+        }
+
+        for (key, value) in self.conf_env() {
+            env_vars.insert(key, value);
+        }
+
+        Neo4jImage::new(self.version, self.user, self.pass, env_vars)
+    }
+}
+
+impl From<Neo4j> for Neo4jImage {
+    fn from(neo4j: Neo4j) -> Self {
+        neo4j.build()
+    }
+}
+
+impl From<Neo4j> for RunnableImage<Neo4jImage> {
+    fn from(neo4j: Neo4j) -> Self {
+        Self::from(neo4j.build())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Neo4j, Neo4jLabsPlugin};
+    use super::*;
 
     #[test]
     fn single_plugin_definition() {
-        let neo4j = Neo4j::default().with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc]);
+        let neo4j = Neo4j::default()
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
+            .build();
         assert_eq!(
             neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
             "[\"apoc\"]"
@@ -285,7 +355,21 @@ mod tests {
     #[test]
     fn multiple_plugin_definition() {
         let neo4j = Neo4j::default()
-            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom]);
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom])
+            .build();
+        assert_eq!(
+            neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
+            "[\"apoc\",\"bloom\"]"
+        );
+    }
+
+    #[test]
+    fn multiple_wiht_plugin_calls() {
+        let neo4j = Neo4j::default()
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Bloom])
+            .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
+            .build();
         assert_eq!(
             neo4j.env_vars.get("NEO4JLABS_PLUGINS").unwrap(),
             "[\"apoc\",\"bloom\"]"
