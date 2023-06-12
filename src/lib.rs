@@ -41,6 +41,8 @@
 use std::collections::HashMap;
 use testcontainers::{core::WaitFor, Container, Image, RunnableImage};
 
+/// Available Neo4j plugins.
+/// See [Neo4j operations manual](https://neo4j.com/docs/operations-manual/current/docker/operations/#docker-neo4j-plugins) for more information.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Neo4jLabsPlugin {
@@ -67,6 +69,7 @@ impl std::fmt::Display for Neo4jLabsPlugin {
     }
 }
 
+#[doc = include_str!("../doc/lib.md")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neo4j {
     version: String,
@@ -75,7 +78,6 @@ pub struct Neo4j {
     plugins: Vec<Neo4jLabsPlugin>,
 }
 
-#[doc = include_str!("../doc/lib.md")]
 impl Neo4j {
     /// Create a new instance of a Neo4j 5 image with the default user and password.
     #[must_use]
@@ -83,7 +85,7 @@ impl Neo4j {
         Self::new(None, None, None)
     }
 
-    // Create a new instance of a Neo4j image of the given version with the default user and password.
+    /// Create a new instance of a Neo4j image of the given version with the default user and password.
     #[must_use]
     pub fn from_version(version: &str) -> Self {
         Self::new(None, None, Some(version.to_owned()))
@@ -204,6 +206,7 @@ impl Default for Neo4j {
     }
 }
 
+/// The actual Neo4j testcontainers image type which is returned by `container.image()`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neo4jImage {
     version: String,
@@ -222,19 +225,19 @@ impl Neo4jImage {
         }
     }
 
-    // Return the version of the Neo4j image.
+    /// Return the version of the Neo4j image.
     #[must_use]
     pub fn version(&self) -> &str {
         &self.version
     }
 
-    // Return the user of the Neo4j server.
+    /// Return the user of the Neo4j server.
     #[must_use]
     pub fn user(&self) -> &str {
         &self.user
     }
 
-    // Return the password of the Neo4j server.
+    /// Return the password of the Neo4j server.
     #[must_use]
     pub fn pass(&self) -> &str {
         &self.pass
