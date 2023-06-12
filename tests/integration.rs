@@ -7,13 +7,13 @@ async fn it_works() {
     let docker = Cli::default();
     let container = docker.run(Neo4j::default());
 
-    let uri = Neo4j::bolt_uri_ipv4(&container);
+    let uri = container.image().bolt_uri_ipv4();
     assert!(uri.starts_with("bolt://"));
 
-    let uri = Neo4j::http_uri_ipv4(&container);
+    let uri = container.image().http_uri_ipv4();
     assert!(uri.starts_with("http://"));
 
-    let uri = Neo4j::bolt_uri_ipv4(&container);
+    let uri = container.image().bolt_uri_ipv4();
     let uri = uri.trim_start_matches("bolt://");
     let auth_user = container.image().user();
     let auth_pass = container.image().pass();

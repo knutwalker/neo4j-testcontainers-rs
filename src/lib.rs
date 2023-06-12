@@ -38,8 +38,14 @@
     clippy::missing_const_for_fn
 )]
 
-use std::collections::HashMap;
-use testcontainers::{core::WaitFor, Container, Image, RunnableImage};
+use std::{
+    cell::{Ref, RefCell},
+    collections::HashMap,
+};
+use testcontainers::{
+    core::{ContainerState, WaitFor},
+    Container, Image, RunnableImage,
+};
 
 /// Available Neo4j plugins.
 /// See [Neo4j operations manual](https://neo4j.com/docs/operations-manual/current/docker/operations/#docker-neo4j-plugins) for more information.
@@ -138,65 +144,23 @@ impl Neo4j {
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
-    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv4()` instead.")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `container.image().bolt_uri_ipv4()` instead."
+    )]
     #[must_use]
     pub fn uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
-        let bolt_port = container
-            .ports()
-            .map_to_host_port_ipv4(7687)
-            .expect("Image exposes 7687 by default");
-        format!("bolt://127.0.0.1:{}", bolt_port)
+        container.image().bolt_uri_ipv4()
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
-    #[deprecated(since = "0.2.0", note = "Use `bolt_uri_ipv6()` instead.")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `container.image().bolt_uri_ipv6()` instead."
+    )]
     #[must_use]
     pub fn uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
-        let bolt_port = container
-            .ports()
-            .map_to_host_port_ipv6(7687)
-            .expect("Image exposes 7687 by default");
-        format!("bolt://[::1]:{}", bolt_port)
-    }
-
-    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
-    #[must_use]
-    pub fn bolt_uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
-        let bolt_port = container
-            .ports()
-            .map_to_host_port_ipv4(7687)
-            .expect("Image exposes 7687 by default");
-        format!("bolt://127.0.0.1:{}", bolt_port)
-    }
-
-    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
-    #[must_use]
-    pub fn bolt_uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
-        let bolt_port = container
-            .ports()
-            .map_to_host_port_ipv6(7687)
-            .expect("Image exposes 7687 by default");
-        format!("bolt://[::1]:{}", bolt_port)
-    }
-
-    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv4.
-    #[must_use]
-    pub fn http_uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
-        let http_port = container
-            .ports()
-            .map_to_host_port_ipv4(7474)
-            .expect("Image exposes 7474 by default");
-        format!("http://127.0.0.1:{}", http_port)
-    }
-
-    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv6.
-    #[must_use]
-    pub fn http_uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
-        let http_port = container
-            .ports()
-            .map_to_host_port_ipv6(7474)
-            .expect("Image exposes 7474 by default");
-        format!("http://[::1]:{}", http_port)
+        container.image().bolt_uri_ipv6()
     }
 }
 
@@ -207,12 +171,12 @@ impl Default for Neo4j {
 }
 
 /// The actual Neo4j testcontainers image type which is returned by `container.image()`
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neo4jImage {
     version: String,
     user: String,
     pass: String,
     env_vars: HashMap<String, String>,
+    state: RefCell<Option<ContainerState>>,
 }
 
 impl Neo4jImage {
@@ -222,6 +186,7 @@ impl Neo4jImage {
             user,
             pass,
             env_vars,
+            state: RefCell::new(None),
         }
     }
 
@@ -241,6 +206,39 @@ impl Neo4jImage {
     #[must_use]
     pub fn pass(&self) -> &str {
         &self.pass
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
+    #[must_use]
+    pub fn bolt_uri_ipv4(&self) -> String {
+        let bolt_port = self.container_state().host_port_ipv4(7687);
+        format!("bolt://127.0.0.1:{}", bolt_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
+    #[must_use]
+    pub fn bolt_uri_ipv6(&self) -> String {
+        let bolt_port = self.container_state().host_port_ipv6(7687);
+        format!("bolt://[::1]:{}", bolt_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv4.
+    #[must_use]
+    pub fn http_uri_ipv4(&self) -> String {
+        let http_port = self.container_state().host_port_ipv4(7474);
+        format!("http://127.0.0.1:{}", http_port)
+    }
+
+    /// Return the connection URI to connect to the Neo4j server via HTTP over IPv6.
+    #[must_use]
+    pub fn http_uri_ipv6(&self) -> String {
+        let http_port = self.container_state().host_port_ipv6(7474);
+        format!("http://[::1]:{}", http_port)
+    }
+
+    fn container_state(&self) -> Ref<'_, ContainerState> {
+        Ref::filter_map(self.state.borrow(), |state| state.as_ref())
+            .expect("Container must be started before URI can be retrieved")
     }
 }
 
@@ -264,6 +262,11 @@ impl Image for Neo4jImage {
 
     fn env_vars(&self) -> Box<dyn Iterator<Item = (&String, &String)> + '_> {
         Box::new(self.env_vars.iter())
+    }
+
+    fn exec_after_start(&self, cs: ContainerState) -> Vec<testcontainers::core::ExecCommand> {
+        *self.state.borrow_mut() = Some(cs);
+        Vec::new()
     }
 }
 
@@ -334,6 +337,17 @@ impl From<Neo4j> for Neo4jImage {
 impl From<Neo4j> for RunnableImage<Neo4jImage> {
     fn from(neo4j: Neo4j) -> Self {
         Self::from(neo4j.build())
+    }
+}
+
+impl std::fmt::Debug for Neo4jImage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Neo4jImage")
+            .field("version", &self.version)
+            .field("user", &self.user)
+            .field("pass", &self.pass)
+            .field("env_vars", &self.env_vars)
+            .finish()
     }
 }
 
