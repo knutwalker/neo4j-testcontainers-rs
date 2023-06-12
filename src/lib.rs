@@ -462,8 +462,68 @@ mod tests {
     use super::*;
 
     #[test]
+    fn set_valid_version() {
+        let neo4j = Neo4j::new().with_version("4.2.0").unwrap().build();
+        assert_eq!(neo4j.version, "4.2.0");
+    }
+
+    #[test]
+    fn set_partial_version() {
+        let neo4j = Neo4j::new().with_version("4.2").unwrap().build();
+        assert_eq!(neo4j.version, "4.2");
+
+        let neo4j = Neo4j::new().with_version("4").unwrap().build();
+        assert_eq!(neo4j.version, "4");
+    }
+
+    #[test]
+    fn set_enterprise_version() {
+        let msg = Neo4j::new()
+            .with_version("4.2.0-enterprise")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(msg, "Invalid version: 4.2.0-enterprise");
+    }
+
+    #[test]
+    fn set_invalid_version() {
+        let msg = Neo4j::new()
+            .with_version("lorem ipsum")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(msg, "Invalid version: lorem ipsum");
+    }
+
+    #[test]
+    fn set_user() {
+        let neo4j = Neo4j::new().with_user("Benutzer").build();
+        assert_eq!(neo4j.user, "Benutzer");
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "Benutzer/neo");
+    }
+
+    #[test]
+    fn set_password() {
+        let neo4j = Neo4j::new().with_password("Passwort").build();
+        assert_eq!(neo4j.pass, "Passwort");
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "neo4j/Passwort");
+    }
+
+    #[test]
+    fn set_short_password() {
+        let neo4j = Neo4j::new().with_password("1337").build();
+        assert_eq!(neo4j.pass, "1337");
+        assert_eq!(
+            neo4j
+                .env_vars
+                .get("NEO4J_dbms_security_auth__minimum__password__length")
+                .unwrap(),
+            "4"
+        );
+    }
+
+    #[test]
     fn single_plugin_definition() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
             .build();
         assert_eq!(
@@ -474,7 +534,7 @@ mod tests {
 
     #[test]
     fn multiple_plugin_definition() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom])
             .build();
         assert_eq!(
@@ -485,7 +545,7 @@ mod tests {
 
     #[test]
     fn multiple_wiht_plugin_calls() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Bloom])
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
