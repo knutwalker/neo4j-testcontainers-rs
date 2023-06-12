@@ -32,11 +32,6 @@
     unused,
     while_true
 )]
-#![allow(
-    clippy::module_name_repetitions,
-    clippy::bool_assert_comparison,
-    clippy::missing_const_for_fn
-)]
 
 use std::{borrow::Cow, cell::RefCell, collections::HashMap};
 use testcontainers::{
@@ -87,7 +82,8 @@ impl Neo4j {
     const DEFAULT_VERSION_TAG: &'static str = "5";
 
     /// Create a new instance of a Neo4j image.
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             version: Value::Default(Self::DEFAULT_VERSION_TAG),
             user: Value::Default(Self::DEFAULT_USER),
@@ -98,7 +94,7 @@ impl Neo4j {
 
     /// Create a new instance of a Neo4j 5 image with the default user and password.
     #[must_use]
-    pub fn from_env() -> Self {
+    pub const fn from_env() -> Self {
         Self {
             version: Value::Env {
                 var: "NEO4J_VERSION_TAG",
@@ -118,6 +114,16 @@ impl Neo4j {
 
     /// Set the Neo4j version to use.
     /// The value must be an existing Neo4j version tag.
+    ///
+    /// Only a subset of Semantic Versions are supported.
+    /// The version must be of the format
+    ///
+    ///    MAJOR[.MINOR[.PATCH]]
+    ///
+    ///
+    /// # Errors
+    ///
+    /// If the version is not valid according to the format.
     pub fn with_version(
         mut self,
         version: impl Into<String>,
@@ -135,24 +141,31 @@ impl Neo4j {
     }
 
     /// Set the username to use.
+    #[must_use]
     pub fn with_user(mut self, user: impl Into<String>) -> Self {
         self.user = Value::Value(user.into());
         self
     }
 
     /// Set the password to use.
+    #[must_use]
     pub fn with_password(mut self, pass: impl Into<String>) -> Self {
         self.pass = Value::Value(pass.into());
         self
     }
 
     /// Add Neo4j lab plugins to get started with the database.
+    #[must_use]
     pub fn with_neo4j_labs_plugin(mut self, plugins: &[Neo4jLabsPlugin]) -> Self {
         self.plugins.extend_from_slice(plugins);
         self
     }
 
     /// Create a new instance of a Neo4j image of the given version with the default user and password.
+    ///
+    /// # Panics
+    ///
+    /// If the version is not valid according to the format described in [`Self::with_version()`].
     #[deprecated(since = "0.2.0", note = "Use `from_env().with_version()` instead.")]
     #[must_use]
     pub fn from_version(version: &str) -> Self {
@@ -160,6 +173,10 @@ impl Neo4j {
     }
 
     /// Create a new instance of a Neo4j image with the version and given user and password.
+    ///
+    /// # Panics
+    ///
+    /// If the version is not valid according to the format described in [`Self::with_version()`].
     #[deprecated(
         since = "0.2.0",
         note = "Use `from_env().with_version().with_user().with_password()` instead."
@@ -445,8 +462,68 @@ mod tests {
     use super::*;
 
     #[test]
+    fn set_valid_version() {
+        let neo4j = Neo4j::new().with_version("4.2.0").unwrap().build();
+        assert_eq!(neo4j.version, "4.2.0");
+    }
+
+    #[test]
+    fn set_partial_version() {
+        let neo4j = Neo4j::new().with_version("4.2").unwrap().build();
+        assert_eq!(neo4j.version, "4.2");
+
+        let neo4j = Neo4j::new().with_version("4").unwrap().build();
+        assert_eq!(neo4j.version, "4");
+    }
+
+    #[test]
+    fn set_enterprise_version() {
+        let msg = Neo4j::new()
+            .with_version("4.2.0-enterprise")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(msg, "Invalid version: 4.2.0-enterprise");
+    }
+
+    #[test]
+    fn set_invalid_version() {
+        let msg = Neo4j::new()
+            .with_version("lorem ipsum")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(msg, "Invalid version: lorem ipsum");
+    }
+
+    #[test]
+    fn set_user() {
+        let neo4j = Neo4j::new().with_user("Benutzer").build();
+        assert_eq!(neo4j.user, "Benutzer");
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "Benutzer/neo");
+    }
+
+    #[test]
+    fn set_password() {
+        let neo4j = Neo4j::new().with_password("Passwort").build();
+        assert_eq!(neo4j.pass, "Passwort");
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "neo4j/Passwort");
+    }
+
+    #[test]
+    fn set_short_password() {
+        let neo4j = Neo4j::new().with_password("1337").build();
+        assert_eq!(neo4j.pass, "1337");
+        assert_eq!(
+            neo4j
+                .env_vars
+                .get("NEO4J_dbms_security_auth__minimum__password__length")
+                .unwrap(),
+            "4"
+        );
+    }
+
+    #[test]
     fn single_plugin_definition() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
             .build();
         assert_eq!(
@@ -457,7 +534,7 @@ mod tests {
 
     #[test]
     fn multiple_plugin_definition() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc, Neo4jLabsPlugin::Bloom])
             .build();
         assert_eq!(
@@ -468,7 +545,7 @@ mod tests {
 
     #[test]
     fn multiple_wiht_plugin_calls() {
-        let neo4j = Neo4j::default()
+        let neo4j = Neo4j::new()
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Bloom])
             .with_neo4j_labs_plugin(&[Neo4jLabsPlugin::Apoc])
