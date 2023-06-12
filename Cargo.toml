@@ -14,3 +14,7 @@ rust-version = "1.60.0"
 
 [dependencies]
 testcontainers = { version = "0.14.0" }
+
+[dev-dependencies]
+neo4rs = "0.6.0"
+tokio = { version = "1.28.2", features = ["test-util", "macros"] }
