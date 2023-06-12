@@ -13,6 +13,7 @@ categories = ["development-tools::testing"]
 rust-version = "1.60.0"
 
 [dependencies]
+lenient_semver = { version = "0.4.2", default-features = false }
 testcontainers = { version = "0.14.0" }
 
 [dev-dependencies]
