@@ -38,10 +38,7 @@
     clippy::missing_const_for_fn
 )]
 
-use std::{
-    cell::{Ref, RefCell},
-    collections::HashMap,
-};
+use std::{cell::RefCell, collections::HashMap};
 use testcontainers::{
     core::{ContainerState, WaitFor},
     Container, Image, RunnableImage,
@@ -211,34 +208,49 @@ impl Neo4jImage {
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
     #[must_use]
     pub fn bolt_uri_ipv4(&self) -> String {
-        let bolt_port = self.container_state().host_port_ipv4(7687);
+        let bolt_port = self
+            .state
+            .borrow()
+            .as_ref()
+            .expect("Container must be started before URI can be retrieved")
+            .host_port_ipv4(7687);
         format!("bolt://127.0.0.1:{}", bolt_port)
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv6.
     #[must_use]
     pub fn bolt_uri_ipv6(&self) -> String {
-        let bolt_port = self.container_state().host_port_ipv6(7687);
+        let bolt_port = self
+            .state
+            .borrow()
+            .as_ref()
+            .expect("Container must be started before URI can be retrieved")
+            .host_port_ipv6(7687);
         format!("bolt://[::1]:{}", bolt_port)
     }
 
     /// Return the connection URI to connect to the Neo4j server via HTTP over IPv4.
     #[must_use]
     pub fn http_uri_ipv4(&self) -> String {
-        let http_port = self.container_state().host_port_ipv4(7474);
+        let http_port = self
+            .state
+            .borrow()
+            .as_ref()
+            .expect("Container must be started before URI can be retrieved")
+            .host_port_ipv4(7474);
         format!("http://127.0.0.1:{}", http_port)
     }
 
     /// Return the connection URI to connect to the Neo4j server via HTTP over IPv6.
     #[must_use]
     pub fn http_uri_ipv6(&self) -> String {
-        let http_port = self.container_state().host_port_ipv6(7474);
-        format!("http://[::1]:{}", http_port)
-    }
-
-    fn container_state(&self) -> Ref<'_, ContainerState> {
-        Ref::filter_map(self.state.borrow(), |state| state.as_ref())
+        let http_port = self
+            .state
+            .borrow()
+            .as_ref()
             .expect("Container must be started before URI can be retrieved")
+            .host_port_ipv6(7474);
+        format!("http://[::1]:{}", http_port)
     }
 }
 
