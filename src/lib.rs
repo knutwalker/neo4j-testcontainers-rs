@@ -25,7 +25,6 @@
     unsafe_op_in_unsafe_fn,
     unused_allocation,
     unused_comparisons,
-    unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
     unused_parens,
