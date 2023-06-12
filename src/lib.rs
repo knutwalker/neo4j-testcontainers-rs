@@ -55,7 +55,6 @@ pub enum Neo4jLabsPlugin {
 }
 
 impl std::fmt::Display for Neo4jLabsPlugin {
-
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Apoc => formatter.pad("apoc"),
@@ -104,7 +103,6 @@ impl Neo4j {
     /// Define Neo4j lab plugins to get started with the database.
     /// Returns new instance.
     pub fn with_neo4j_labs_plugin(mut self, plugins: &[Neo4jLabsPlugin]) -> Self {
-
         if plugins.is_empty() {
             return self;
         }
