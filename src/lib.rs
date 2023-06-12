@@ -82,9 +82,9 @@ pub struct Neo4j {
 }
 
 impl Neo4j {
-    const DEFAULT_USER: &str = "neo4j";
-    const DEFAULT_PASS: &str = "neo";
-    const DEFAULT_VERSION_TAG: &str = "5";
+    const DEFAULT_USER: &'static str = "neo4j";
+    const DEFAULT_PASS: &'static str = "neo";
+    const DEFAULT_VERSION_TAG: &'static str = "5";
 
     /// Create a new instance of a Neo4j image.
     pub fn new() -> Self {
