@@ -381,9 +381,14 @@ impl Image for Neo4jImage {
 
 impl Neo4j {
     fn auth_env(&self) -> impl IntoIterator<Item = (String, String)> {
-        let user = Self::value(&self.user)?;
-        let pass = Self::value(&self.pass)?;
-        Some(("NEO4J_AUTH".to_owned(), format!("{}/{}", user, pass)))
+        fn auth(image: &Neo4j) -> Option<String> {
+            let user = Neo4j::value(&image.user)?;
+            let pass = Neo4j::value(&image.pass)?;
+            Some(format!("{}/{}", user, pass))
+        }
+
+        let auth = auth(self).unwrap_or_else(|| "none".to_owned());
+        Some(("NEO4J_AUTH".to_owned(), auth))
     }
 
     fn plugins_env(&self) -> impl IntoIterator<Item = (String, String)> {
@@ -555,7 +560,7 @@ mod tests {
         assert_eq!(neo4j.password(), None);
         assert_eq!(neo4j.user(), None);
         assert_eq!(neo4j.auth(), None);
-        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH"), None);
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "none");
     }
 
     #[test]
