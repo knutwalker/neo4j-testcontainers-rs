@@ -154,6 +154,16 @@ impl Neo4j {
         self
     }
 
+    /// Do not use any authentication on the testcontainer.
+    ///
+    /// Setting this will override any prior usages of [`Self::with_user`] and
+    /// [`Self::with_password`].
+    pub fn without_authentication(mut self) -> Self {
+        self.user = Value::Unset;
+        self.pass = Value::Unset;
+        self
+    }
+
     /// Add Neo4j lab plugins to get started with the database.
     #[must_use]
     pub fn with_neo4j_labs_plugin(mut self, plugins: &[Neo4jLabsPlugin]) -> Self {
@@ -219,6 +229,7 @@ enum Value {
     },
     Default(&'static str),
     Value(String),
+    Unset,
 }
 
 struct ValidateVersion(bool);
@@ -268,7 +279,7 @@ impl Neo4jImage {
         &self.version
     }
 
-    /// Return the user/passworh authentication tuple of the Neo4j server.
+    /// Return the user/password authentication tuple of the Neo4j server.
     /// If no authentication is set, `None` is returned.
     #[must_use]
     pub fn auth(&self) -> Option<(&str, &str)> {
@@ -444,6 +455,7 @@ impl Neo4j {
             }
             &Value::Default(value) => value.into(),
             Value::Value(value) => value.as_str().into(),
+            Value::Unset => return None,
         })
     }
 }
@@ -535,6 +547,15 @@ mod tests {
                 .unwrap(),
             "4"
         );
+    }
+
+    #[test]
+    fn disable_auth() {
+        let neo4j = Neo4j::new().without_authentication().build();
+        assert_eq!(neo4j.password(), None);
+        assert_eq!(neo4j.user(), None);
+        assert_eq!(neo4j.auth(), None);
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH"), None);
     }
 
     #[test]
