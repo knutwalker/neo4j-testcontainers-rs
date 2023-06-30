@@ -1,6 +1,7 @@
 #![doc = include_str!("../doc/lib.md")]
 #![warn(clippy::all, clippy::nursery)]
 #![allow(clippy::cargo, clippy::pedantic)]
+#![allow(clippy::missing_const_for_fn)]
 #![warn(
     bad_style,
     dead_code,
