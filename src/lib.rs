@@ -34,7 +34,7 @@
     while_true
 )]
 
-use std::{borrow::Cow, cell::RefCell, collections::HashMap};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, io::BufRead};
 use testcontainers::{
     core::{ContainerState, WaitFor},
     Container, Image, RunnableImage,
@@ -74,6 +74,7 @@ pub struct Neo4j {
     version: Value,
     user: Value,
     pass: Value,
+    enterprise: bool,
     plugins: Vec<Neo4jLabsPlugin>,
 }
 
@@ -89,6 +90,7 @@ impl Neo4j {
             version: Value::Default(Self::DEFAULT_VERSION_TAG),
             user: Value::Default(Self::DEFAULT_USER),
             pass: Value::Default(Self::DEFAULT_PASS),
+            enterprise: false,
             plugins: Vec::new(),
         }
     }
@@ -109,6 +111,7 @@ impl Neo4j {
                 var: "NEO4J_TEST_PASS",
                 fallback: Self::DEFAULT_PASS,
             },
+            enterprise: false,
             plugins: Vec::new(),
         }
     }
@@ -163,6 +166,44 @@ impl Neo4j {
         self.user = Value::Unset;
         self.pass = Value::Unset;
         self
+    }
+
+    /// Use the enterprise edition of Neo4j.
+    ///
+    /// # Note
+    /// Please have a look at the [Neo4j Licensing page](https://neo4j.com/licensing/).
+    /// While the Neo4j Community Edition can be used for free in your projects under the GPL v3 license,
+    /// Neo4j Enterprise edition needs either a commercial, education or evaluation license.
+    pub fn with_enterprise_edition(
+        mut self,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send + 'static>> {
+        const ACCEPTANCE_FILE_NAME: &str = "container-license-acceptance.txt";
+
+        let version = Self::value(&self.version).expect("Version is always set");
+        let image = format!("neo4j:{}-enterprise", version);
+
+        let has_license_acceptance = std::env::current_dir()
+            .ok()
+            .map(|o| o.join(ACCEPTANCE_FILE_NAME))
+            .and_then(|o| std::fs::File::open(o).ok())
+            .into_iter()
+            .flat_map(|o| std::io::BufReader::new(o).lines())
+            .any(|o| o.map_or(false, |line| line.trim() == image));
+
+        if !has_license_acceptance {
+            return Err(format!(
+                concat!(
+                    "You need to accept the Neo4j Enterprise Edition license ",
+                    "by creating a file named `{}` in the current directory ",
+                    "and adding the following line to it:\n\n\t{}",
+                ),
+                ACCEPTANCE_FILE_NAME, image
+            )
+            .into());
+        }
+
+        self.enterprise = true;
+        Ok(self)
     }
 
     /// Add Neo4j lab plugins to get started with the database.
@@ -381,6 +422,15 @@ impl Image for Neo4jImage {
 }
 
 impl Neo4j {
+    fn enterprise_env(&self) -> impl IntoIterator<Item = (String, String)> {
+        self.enterprise.then(|| {
+            (
+                "NEO4J_ACCEPT_LICENSE_AGREEMENT".to_owned(),
+                "yes".to_owned(),
+            )
+        })
+    }
+
     fn auth_env(&self) -> impl IntoIterator<Item = (String, String)> {
         fn auth(image: &Neo4j) -> Option<String> {
             let user = Neo4j::value(&image.user)?;
@@ -428,6 +478,10 @@ impl Neo4j {
 
         let mut env_vars = HashMap::new();
 
+        for (key, value) in self.enterprise_env() {
+            env_vars.insert(key, value);
+        }
+
         for (key, value) in self.auth_env() {
             env_vars.insert(key, value);
         }
@@ -444,10 +498,15 @@ impl Neo4j {
             Self::value(&self.pass).map(|pass| (user.into_owned(), pass.into_owned()))
         });
 
+        let version = Self::value(&self.version).expect("Version must be set");
+        let version = format!(
+            "{}{}",
+            version,
+            if self.enterprise { "-enterprise" } else { "" }
+        );
+
         Neo4jImage {
-            version: Self::value(&self.version)
-                .expect("Version must be set")
-                .into_owned(),
+            version,
             auth,
             env_vars,
             state: RefCell::new(None),
