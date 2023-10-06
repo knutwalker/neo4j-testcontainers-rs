@@ -182,9 +182,12 @@ impl Neo4j {
         let version = Self::value(&self.version).expect("Version is always set");
         let image = format!("neo4j:{}-enterprise", version);
 
-        let has_license_acceptance = std::env::current_dir()
+        let acceptance_file = std::env::current_dir()
             .ok()
-            .map(|o| o.join(ACCEPTANCE_FILE_NAME))
+            .map(|o| o.join(ACCEPTANCE_FILE_NAME));
+
+        let has_license_acceptance = acceptance_file
+            .as_deref()
             .and_then(|o| std::fs::File::open(o).ok())
             .into_iter()
             .flat_map(|o| std::io::BufReader::new(o).lines())
@@ -193,11 +196,14 @@ impl Neo4j {
         if !has_license_acceptance {
             return Err(format!(
                 concat!(
-                    "You need to accept the Neo4j Enterprise Edition license ",
-                    "by creating a file named `{}` in the current directory ",
-                    "and adding the following line to it:\n\n\t{}",
+                    "You need to accept the Neo4j Enterprise Edition license by ",
+                    "creating the file `{}` with the following content:\n\n\t{}",
                 ),
-                ACCEPTANCE_FILE_NAME, image
+                acceptance_file.map_or_else(
+                    || ACCEPTANCE_FILE_NAME.to_owned(),
+                    |o| { o.display().to_string() }
+                ),
+                image
             )
             .into());
         }
