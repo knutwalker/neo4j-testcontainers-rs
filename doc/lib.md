@@ -14,7 +14,7 @@ let docker = Cli::default();
 let container = docker.run(Neo4j::default());
 let uri = container.image().bolt_uri_ipv4();
 let auth_user = container.image().user();
-let auth_pass = container.image().pass();
+let auth_pass = container.image().password();
 // connect to Neo4j with the uri, user and pass
 ```
 
@@ -49,7 +49,7 @@ Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and N
 
 # MSRV
 
-The crate has a minimum supported Rust version (MSRV) of `1.60.0`.
+The crate has a minimum supported Rust version (MSRV) of `1.63.0`.
 
 A change in the MSRV in *not* considered a breaking change.
 For versions past 1.0.0, a change in the MSRV can be done in a minor version increment (1.1.3 -> 1.2.0)

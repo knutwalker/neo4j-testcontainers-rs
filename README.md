@@ -1,4 +1,4 @@
-# neo4j_testcontainers [![CI Status][ci-badge]][ci-url] [![Crates.io][crates-badge]][crates-url] [![Docs][docs-badge]][docs-url] ![License: MIT][license-badge] ![Rust Version: ^1.60.0][rust-version-badge]
+# neo4j_testcontainers [![CI Status][ci-badge]][ci-url] [![Crates.io][crates-badge]][crates-url] [![Docs][docs-badge]][docs-url] ![License: MIT][license-badge] ![Rust Version: 1.63.0][rust-version-badge]
 
 [ci-badge]: https://github.com/knutwalker/neo4j-testcontainers-rs/actions/workflows/checks.yml/badge.svg
 [ci-url]: https://github.com/knutwalker/neo4j-testcontainers-rs
@@ -7,7 +7,7 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=shield
 [docs-url]: https://docs.rs/neo4j_testcontainers
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg?style=shield
-[rust-version-badge]: https://img.shields.io/badge/rustc-%5E1.60.0-orange.svg?style=shield
+[rust-version-badge]: https://img.shields.io/badge/rustc-1.63.0-orange.svg?style=shield
 
 Neo4j image for [testcontainers][__link0].
 
@@ -62,7 +62,7 @@ Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and N
 
 ## MSRV
 
-The crate has a minimum supported Rust version (MSRV) of `1.60.0`.
+The crate has a minimum supported Rust version (MSRV) of `1.63.0`.
 
 A change in the MSRV in *not* considered a breaking change. For versions past 1.0.0, a change in the MSRV can be done in a minor version increment (1.1.3 -> 1.2.0) for versions before 1.0.0, a change in the MSRV can be done in a patch version increment (0.1.3 -> 0.1.4).
 

@@ -10,12 +10,12 @@ documentation = "https://docs.rs/neo4j_testcontainers"
 readme = "README.md"
 keywords = ["neo4j", "testcontainers", "docker"]
 categories = ["development-tools::testing"]
-rust-version = "1.60.0"
+rust-version = "1.63.0"
 
 [dependencies]
 lenient_semver = { version = "0.4.2", default-features = false }
 testcontainers = { version = "0.14.0" }
 
 [dev-dependencies]
-neo4rs = "0.6.0"
+neo4rs = "0.6.2"
 tokio = { version = "1.28.2", features = ["test-util", "macros"] }

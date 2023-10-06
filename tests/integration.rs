@@ -14,7 +14,6 @@ async fn it_works() {
     assert!(uri.starts_with("http://"));
 
     let uri = container.image().bolt_uri_ipv4();
-    let uri = uri.trim_start_matches("bolt://");
     let auth_user = container.image().user().expect("default user");
     let auth_pass = container.image().password().expect("default password");
 
