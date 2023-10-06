@@ -1,6 +1,7 @@
 #![doc = include_str!("../doc/lib.md")]
 #![warn(clippy::all, clippy::nursery)]
 #![allow(clippy::cargo, clippy::pedantic)]
+#![allow(clippy::missing_const_for_fn)]
 #![warn(
     bad_style,
     dead_code,
@@ -154,6 +155,16 @@ impl Neo4j {
         self
     }
 
+    /// Do not use any authentication on the testcontainer.
+    ///
+    /// Setting this will override any prior usages of [`Self::with_user`] and
+    /// [`Self::with_password`].
+    pub fn without_authentication(mut self) -> Self {
+        self.user = Value::Unset;
+        self.pass = Value::Unset;
+        self
+    }
+
     /// Add Neo4j lab plugins to get started with the database.
     #[must_use]
     pub fn with_neo4j_labs_plugin(mut self, plugins: &[Neo4jLabsPlugin]) -> Self {
@@ -219,6 +230,7 @@ enum Value {
     },
     Default(&'static str),
     Value(String),
+    Unset,
 }
 
 struct ValidateVersion(bool);
@@ -256,8 +268,7 @@ impl Default for Neo4j {
 /// The actual Neo4j testcontainers image type which is returned by `container.image()`
 pub struct Neo4jImage {
     version: String,
-    user: String,
-    pass: String,
+    auth: Option<(String, String)>,
     env_vars: HashMap<String, String>,
     state: RefCell<Option<ContainerState>>,
 }
@@ -269,16 +280,27 @@ impl Neo4jImage {
         &self.version
     }
 
-    /// Return the user of the Neo4j server.
+    /// Return the user/password authentication tuple of the Neo4j server.
+    /// If no authentication is set, `None` is returned.
     #[must_use]
-    pub fn user(&self) -> &str {
-        &self.user
+    pub fn auth(&self) -> Option<(&str, &str)> {
+        self.auth
+            .as_ref()
+            .map(|(user, pass)| (user.as_str(), pass.as_str()))
+    }
+
+    /// Return the user of the Neo4j server.
+    /// If no authentication is set, `None` is returned.
+    #[must_use]
+    pub fn user(&self) -> Option<&str> {
+        self.auth().map(|(user, _)| user)
     }
 
     /// Return the password of the Neo4j server.
+    /// If no authentication is set, `None` is returned.
     #[must_use]
-    pub fn pass(&self) -> &str {
-        &self.pass
+    pub fn password(&self) -> Option<&str> {
+        self.auth().map(|(_, pass)| pass)
     }
 
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
@@ -360,10 +382,14 @@ impl Image for Neo4jImage {
 
 impl Neo4j {
     fn auth_env(&self) -> impl IntoIterator<Item = (String, String)> {
-        let user = Self::value(&self.user);
-        let pass = Self::value(&self.pass);
+        fn auth(image: &Neo4j) -> Option<String> {
+            let user = Neo4j::value(&image.user)?;
+            let pass = Neo4j::value(&image.pass)?;
+            Some(format!("{}/{}", user, pass))
+        }
 
-        Some(("NEO4J_AUTH".to_owned(), format!("{}/{}", user, pass)))
+        let auth = auth(self).unwrap_or_else(|| "none".to_owned());
+        Some(("NEO4J_AUTH".to_owned(), auth))
     }
 
     fn plugins_env(&self) -> impl IntoIterator<Item = (String, String)> {
@@ -384,7 +410,7 @@ impl Neo4j {
     }
 
     fn conf_env(&self) -> impl IntoIterator<Item = (String, String)> {
-        let pass = Self::value(&self.pass);
+        let pass = Self::value(&self.pass)?;
 
         if pass.len() < 8 {
             Some((
@@ -414,23 +440,29 @@ impl Neo4j {
             env_vars.insert(key, value);
         }
 
+        let auth = Self::value(&self.user).and_then(|user| {
+            Self::value(&self.pass).map(|pass| (user.into_owned(), pass.into_owned()))
+        });
+
         Neo4jImage {
-            version: Self::value(&self.version).into_owned(),
-            user: Self::value(&self.user).into_owned(),
-            pass: Self::value(&self.pass).into_owned(),
+            version: Self::value(&self.version)
+                .expect("Version must be set")
+                .into_owned(),
+            auth,
             env_vars,
             state: RefCell::new(None),
         }
     }
 
-    fn value(value: &Value) -> Cow<'_, str> {
-        match value {
+    fn value(value: &Value) -> Option<Cow<'_, str>> {
+        Some(match value {
             &Value::Env { var, fallback } => {
                 std::env::var(var).map_or_else(|_| fallback.into(), Into::into)
             }
             &Value::Default(value) => value.into(),
             Value::Value(value) => value.as_str().into(),
-        }
+            Value::Unset => return None,
+        })
     }
 }
 
@@ -450,8 +482,7 @@ impl std::fmt::Debug for Neo4jImage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Neo4jImage")
             .field("version", &self.version)
-            .field("user", &self.user)
-            .field("pass", &self.pass)
+            .field("auth", &self.auth())
             .field("env_vars", &self.env_vars)
             .finish()
     }
@@ -497,21 +528,24 @@ mod tests {
     #[test]
     fn set_user() {
         let neo4j = Neo4j::new().with_user("Benutzer").build();
-        assert_eq!(neo4j.user, "Benutzer");
+        assert_eq!(neo4j.user(), Some("Benutzer"));
+        assert_eq!(neo4j.auth(), Some(("Benutzer", "neo")));
         assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "Benutzer/neo");
     }
 
     #[test]
     fn set_password() {
         let neo4j = Neo4j::new().with_password("Passwort").build();
-        assert_eq!(neo4j.pass, "Passwort");
+        assert_eq!(neo4j.password(), Some("Passwort"));
+        assert_eq!(neo4j.auth(), Some(("neo4j", "Passwort")));
         assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "neo4j/Passwort");
     }
 
     #[test]
     fn set_short_password() {
         let neo4j = Neo4j::new().with_password("1337").build();
-        assert_eq!(neo4j.pass, "1337");
+        assert_eq!(neo4j.password(), Some("1337"));
+        assert_eq!(neo4j.auth(), Some(("neo4j", "1337")));
         assert_eq!(
             neo4j
                 .env_vars
@@ -519,6 +553,15 @@ mod tests {
                 .unwrap(),
             "4"
         );
+    }
+
+    #[test]
+    fn disable_auth() {
+        let neo4j = Neo4j::new().without_authentication().build();
+        assert_eq!(neo4j.password(), None);
+        assert_eq!(neo4j.user(), None);
+        assert_eq!(neo4j.auth(), None);
+        assert_eq!(neo4j.env_vars.get("NEO4J_AUTH").unwrap(), "none");
     }
 
     #[test]

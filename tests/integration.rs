@@ -15,8 +15,8 @@ async fn it_works() {
 
     let uri = container.image().bolt_uri_ipv4();
     let uri = uri.trim_start_matches("bolt://");
-    let auth_user = container.image().user();
-    let auth_pass = container.image().pass();
+    let auth_user = container.image().user().expect("default user");
+    let auth_pass = container.image().password().expect("default password");
 
     let graph = Graph::new(uri, auth_user, auth_pass).await.unwrap();
     let mut result = graph.execute(neo4rs::query("RETURN 1")).await.unwrap();
