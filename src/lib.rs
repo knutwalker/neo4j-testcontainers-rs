@@ -94,9 +94,9 @@ pub trait Neo4jExt: Sized {
 
 impl Neo4jExt for Neo4j {
     fn from_env() -> Self {
-        const DEFAULT_USER: &'static str = "neo4j";
-        const DEFAULT_PASS: &'static str = "neo";
-        const DEFAULT_VERSION_TAG: &'static str = "5";
+        const DEFAULT_USER: &str = "neo4j";
+        const DEFAULT_PASS: &str = "neo";
+        const DEFAULT_VERSION_TAG: &str = "5";
 
         let user = var("NEO4J_TEST_USER").map_or_else(|_| Cow::Borrowed(DEFAULT_USER), Cow::Owned);
         let pass = var("NEO4J_TEST_PASS").map_or_else(|_| Cow::Borrowed(DEFAULT_PASS), Cow::Owned);
