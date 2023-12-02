@@ -13,8 +13,8 @@ categories = ["development-tools::testing"]
 rust-version = "1.63.0"
 
 [dependencies]
-lenient_semver = { version = "0.4.2", default-features = false }
 testcontainers = { version = "0.15.0" }
+testcontainers-modules = { version = "0.1.4", features = ["neo4j"] }
 
 [dev-dependencies]
 neo4rs = "0.6.2"
