@@ -1,4 +1,4 @@
-use neo4j_testcontainers::Neo4j;
+use neo4j_testcontainers::{Neo4j, Neo4jImageExt as _};
 use neo4rs::Graph;
 use testcontainers::clients::Cli;
 
