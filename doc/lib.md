@@ -88,7 +88,7 @@ The content of the file must be the same as the actual image that is being used,
 
 # MSRV
 
-The crate has a minimum supported Rust version (MSRV) of `1.63.0`.
+The crate has a minimum supported Rust version (MSRV) of `1.70.0`.
 
 A change in the MSRV in *not* considered a breaking change.
 For versions past 1.0.0, a change in the MSRV can be done in a minor version increment (1.1.3 -> 1.2.0)
