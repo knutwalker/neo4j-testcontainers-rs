@@ -1,10 +1,9 @@
-use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j};
+use neo4j_testcontainers::{prelude::*, runners::AsyncRunner as _, Neo4j};
 use neo4rs::Graph;
 
 #[tokio::test]
 async fn it_works() {
-    let client = Cli::default();
-    let container = client.run(Neo4j::default());
+    let container = Neo4j::default().start().await;
 
     let uri = container.image().bolt_uri_ipv4();
     assert!(uri.starts_with("bolt://"));

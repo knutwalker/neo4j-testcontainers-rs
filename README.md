@@ -18,10 +18,9 @@ The default version is `5`.
 ## Example
 
 ```rust
-use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j};
+use neo4j_testcontainers::{prelude::*, runners::SyncRunner, Neo4j};
 
-let client = Cli::default();
-let container = client.run(Neo4j::default());
+let container = Neo4j::default().start();
 let uri = container.image().bolt_uri_ipv4();
 let auth_user = container.image().user();
 let auth_pass = container.image().password();
@@ -39,14 +38,14 @@ This crate also exports a few types that are required to get you started without
 // Those types are exported
 pub use testcontainers_modules::{
     neo4j::{Neo4j, Neo4jImage},
-    testcontainers::clients,
+    testcontainers::runners,
     testcontainers::RunnableImage,
 };
 ```
 
 ```rust
 // ... on your end: use the exported types
-use neo4j_testcontainers::{clients::Cli, Neo4j, RunnableImage};
+use neo4j_testcontainers::{runners::SyncRunner, Neo4j, RunnableImage};
 ```
 
 ## Neo4j Version
@@ -84,12 +83,11 @@ Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and N
 In order to use Neo4j Enterprise Edition for the `testcontainer`, you can configure it on the `RunnableImage`:
 
 ```rust
-use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j, RunnableImage};
+use neo4j_testcontainers::{prelude::*, runners::SyncRunner, Neo4j, RunnableImage};
 
-let client = Cli::default();
 let neo4j = RunnableImage::from(Neo4j::default());
 let neo4j = neo4j.with_enterprise_edition().expect("license not accepted");
-let container = client.run(neo4j);
+let container = neo4j.start();
 ```
 
 Before enabling this, have a read through the [Neo4j Licensing page][__link4] to understand the terms

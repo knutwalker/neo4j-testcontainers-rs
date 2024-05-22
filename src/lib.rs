@@ -36,10 +36,10 @@
 #[cfg(not(test))]
 use std::io::BufRead;
 use std::{borrow::Cow, env::var};
-use testcontainers_modules::testcontainers::Container;
+use testcontainers_modules::testcontainers::ContainerAsync;
 pub use testcontainers_modules::{
     neo4j::{Neo4j, Neo4jImage},
-    testcontainers::clients,
+    testcontainers::runners,
     testcontainers::RunnableImage,
 };
 
@@ -88,7 +88,7 @@ pub trait Neo4jExt: Sized {
         note = "Use `container.image().bolt_uri_ipv4()` instead."
     )]
     #[must_use]
-    fn uri_ipv4(container: &Container<'_, Neo4jImage>) -> String {
+    fn uri_ipv4(container: &ContainerAsync<Neo4jImage>) -> String {
         container.image().bolt_uri_ipv4()
     }
 
@@ -98,7 +98,7 @@ pub trait Neo4jExt: Sized {
         note = "Use `container.image().bolt_uri_ipv6()` instead."
     )]
     #[must_use]
-    fn uri_ipv6(container: &Container<'_, Neo4jImage>) -> String {
+    fn uri_ipv6(container: &ContainerAsync<Neo4jImage>) -> String {
         container.image().bolt_uri_ipv6()
     }
 }
