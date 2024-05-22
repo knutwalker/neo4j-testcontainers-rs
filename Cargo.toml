@@ -13,9 +13,9 @@ categories = ["development-tools::testing"]
 rust-version = "1.70.0"
 
 [dependencies]
-testcontainers-modules = { version = "0.1.4", features = ["neo4j"] }
+testcontainers-modules = { version = "0.4.0", features = ["neo4j"] }
 
 [dev-dependencies]
 neo4rs = "0.7.0"
-testcontainers = { version = "0.15.0" }
+testcontainers = { version = "0.16.7", features = ["blocking"] }
 tokio = { version = "1.5.0", features = ["test-util", "macros"] }

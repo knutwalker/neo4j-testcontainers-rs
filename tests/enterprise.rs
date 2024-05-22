@@ -1,9 +1,8 @@
-use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j, RunnableImage};
+use neo4j_testcontainers::{prelude::*, runners::AsyncRunner as _, Neo4j, RunnableImage};
 use neo4rs::Graph;
 
 #[tokio::test]
 async fn runs_enterprise() {
-    let client = Cli::default();
     let neo4j = RunnableImage::from(Neo4j::default().with_password("Picard123"));
     let neo4j = match neo4j.with_enterprise_edition() {
         Ok(n) => n,
@@ -16,7 +15,7 @@ async fn runs_enterprise() {
         }
     };
 
-    let container = client.run(neo4j);
+    let container = neo4j.start().await;
 
     let image = container.image();
 
