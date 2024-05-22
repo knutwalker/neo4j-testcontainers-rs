@@ -13,7 +13,6 @@
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    private_in_public,
     rust_2018_idioms,
     rust_2021_compatibility,
     rust_2021_incompatible_or_patterns,
@@ -34,11 +33,16 @@
     while_true
 )]
 
-pub use testcontainers_modules::neo4j::{Neo4j, Neo4jImage, Neo4jLabsPlugin};
-
+#[cfg(not(test))]
+use std::io::BufRead;
 use std::{borrow::Cow, env::var};
-use testcontainers::Container;
+use testcontainers_modules::testcontainers::Container;
+use testcontainers_modules::{
+    neo4j::{Neo4j, Neo4jImage},
+    testcontainers::RunnableImage,
+};
 
+/// Extension trait for the [`Neo4j`] type, adding a [`Neo4jExt::from_env`] constructor.
 pub trait Neo4jExt: Sized {
     /// Create a new instance of a Neo4j 5 image with the default user and password.
     fn from_env() -> Neo4j;
@@ -110,6 +114,8 @@ impl Neo4jExt for Neo4j {
     }
 }
 
+/// Extension trait for the [`Neo4jImage`] type, adding convenience methods to access to Bolt or
+/// HTTP ports.
 pub trait Neo4jImageExt {
     /// Return the connection URI to connect to the Neo4j server via Bolt over IPv4.
     fn bolt_uri_ipv4(&self) -> String;
@@ -139,5 +145,100 @@ impl Neo4jImageExt for Neo4jImage {
 
     fn http_uri_ipv6(&self) -> String {
         format!("http://[::1]:{}", self.http_port_ipv6())
+    }
+}
+
+/// Extension trait for [`RunnableImage<Neo4jImage>`] to allow the usage of Neo4j Enterprise
+/// Edition via [`Neo4jRunnableImageExt::with_enterprise_edition`].
+pub trait Neo4jRunnableImageExt: Sized {
+    /// Use the enterprise edition of Neo4j.
+    ///
+    /// # Note
+    /// Please have a look at the [Neo4j Licensing page](https://neo4j.com/licensing/).
+    /// While the Neo4j Community Edition can be used for free in your projects under the GPL v3 license,
+    /// Neo4j Enterprise edition needs either a commercial, education or evaluation license.
+    fn with_enterprise_edition(
+        self,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send + 'static>>;
+}
+
+impl Neo4jRunnableImageExt for RunnableImage<Neo4jImage> {
+    fn with_enterprise_edition(
+        self,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send + 'static>> {
+        const ACCEPTANCE_FILE_NAME: &str = "container-license-acceptance.txt";
+
+        let version = self.descriptor();
+
+        if version.ends_with("-enterprise")
+            || self
+                .env_vars()
+                .any(|(k, v)| k == "NEO4J_ACCEPT_LICENSE_AGREEMENT" && v == "yes")
+        {
+            return Ok(self);
+        }
+
+        let (name, version) = version.split_once(':').unwrap();
+
+        let version = format!("{}-enterprise", version);
+        let image = format!("{}:{}", name, version);
+
+        let acceptance_file = std::env::current_dir()
+            .ok()
+            .map(|o| o.join(ACCEPTANCE_FILE_NAME));
+
+        #[cfg(test)]
+        let has_license_acceptance = true;
+
+        #[cfg(not(test))]
+        let has_license_acceptance = acceptance_file
+            .as_deref()
+            .and_then(|o| std::fs::File::open(o).ok())
+            .into_iter()
+            .flat_map(|o| std::io::BufReader::new(o).lines())
+            .any(|o| o.map_or(false, |line| line.trim() == image.as_str()));
+
+        if !has_license_acceptance {
+            return Err(format!(
+                concat!(
+                    "You need to accept the Neo4j Enterprise Edition license by ",
+                    "creating the file `{}` with the following content:\n\n\t{}",
+                ),
+                acceptance_file.map_or_else(
+                    || ACCEPTANCE_FILE_NAME.to_owned(),
+                    |o| { o.display().to_string() }
+                ),
+                image
+            )
+            .into());
+        }
+
+        let this = self
+            .with_env_var(("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes"))
+            .with_tag(version);
+        Ok(this)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_enterprise_version() {
+        let img = RunnableImage::from(Neo4j::default());
+        let img = img.with_enterprise_edition().unwrap();
+
+        let version = img.descriptor();
+        assert_eq!(version, "neo4j:5-enterprise");
+
+        let env_var = img.env_vars().find_map(|(k, v)| {
+            if k == "NEO4J_ACCEPT_LICENSE_AGREEMENT" {
+                Some(v.clone())
+            } else {
+                None
+            }
+        });
+        assert_eq!(env_var.as_deref(), Some("yes"))
     }
 }

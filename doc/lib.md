@@ -7,16 +7,22 @@ The default version is `5`.
 # Example
 
 ```rust,no_run
+use neo4j_testcontainers::Neo4jImageExt;
 use testcontainers::clients::Cli;
-use neo4j_testcontainers::Neo4j;
+use testcontainers_modules::neo4j::Neo4j;
 
-let docker = Cli::default();
-let container = docker.run(Neo4j::default());
+let client = Cli::default();
+let container = client.run(Neo4j::default());
 let uri = container.image().bolt_uri_ipv4();
 let auth_user = container.image().user();
 let auth_pass = container.image().password();
 // connect to Neo4j with the uri, user and pass
 ```
+
+# Testcontainers Module
+
+This crate builds on top of the `neo4j` image from [testcontainers-module](https://crates.io/crates/testcontainers-modules).
+It provides a few extension methods that are too specific to Neo4j to be included in the generic testcontainers module.
 
 # Neo4j Version
 
@@ -46,6 +52,27 @@ Neo4j offers built-in support for Neo4j Labs plugins.
 The method `with_neo4j_labs_plugin` can be used to define them.
 
 Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and Neo Semantics.
+
+# Enterprise edition
+
+In order to use Neo4j Enterprise Edition for the `testcontainer`, you can configure it on the `RunnableImage`:
+
+```rust,no_run
+use neo4j_testcontainers::{Neo4jImageExt, Neo4jRunnableImageExt};
+use testcontainers::{clients::Cli, RunnableImage};
+use testcontainers_modules::neo4j::Neo4j;
+
+let client = Cli::default();
+let neo4j = RunnableImage::from(Neo4j::default());
+let neo4j = neo4j.with_enterprise_edition().expect("license not accepted");
+let container = client.run(neo4j);
+```
+
+Before enabling this, have a read through the [Neo4j Licensing page](https://neo4j.com/licensing/) to understand the terms
+under which you can use the Enterprise edition.
+
+You can accept the terms and condition of the enterprise version by adding a file named `container-license-acceptance.txt` to the root of your cargo workspace, containing the text `neo4j:5-enterprise` in one line.
+The content of the file must be the same as the actual image that is being used, so if you change the version, you also need to change to content of this file.
 
 # MSRV
 

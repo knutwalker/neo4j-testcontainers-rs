@@ -28,6 +28,8 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.MSRV }}
+      - name: Prepare MSRV lockfile
+        run: cp ci/Cargo.lock.msrv Cargo.lock
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Run cargo check
@@ -64,6 +66,8 @@ jobs:
         with:
           toolchain: ${{ env.MSRV }}
           components: clippy
+      - name: Prepare MSRV lockfile
+        run: cp ci/Cargo.lock.msrv Cargo.lock
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Run clippy
@@ -85,6 +89,9 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - name: Prepare MSRV lockfile
+        run: cp ci/Cargo.lock.msrv Cargo.lock
+        if: matrix.rust == '1.63.0'
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Install cargo-nextest
@@ -104,6 +111,8 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.MSRV }}
+      - name: Prepare MSRV lockfile
+        run: cp ci/Cargo.lock.msrv Cargo.lock
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Install cargo-nextest
