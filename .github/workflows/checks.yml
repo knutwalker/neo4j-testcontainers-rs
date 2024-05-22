@@ -13,7 +13,7 @@ on:
 env:
   RUST_LOG: debug
   CARGO_TERM_COLOR: always
-  MSRV: 1.63.0
+  MSRV: 1.70.0
 
 jobs:
   check:
@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, beta, 1.63.0]
+        rust: [stable, beta, 1.70.0]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -91,7 +91,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - name: Prepare MSRV lockfile
         run: cp ci/Cargo.lock.msrv Cargo.lock
-        if: matrix.rust == '1.63.0'
+        if: matrix.rust == '1.70.0'
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Install cargo-nextest
