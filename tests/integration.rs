@@ -1,7 +1,5 @@
-use neo4j_testcontainers::Neo4jImageExt;
+use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j};
 use neo4rs::Graph;
-use testcontainers::clients::Cli;
-use testcontainers_modules::neo4j::Neo4j;
 
 #[tokio::test]
 async fn it_works() {

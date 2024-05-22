@@ -18,9 +18,7 @@ The default version is `5`.
 ## Example
 
 ```rust
-use neo4j_testcontainers::Neo4jImageExt;
-use testcontainers::clients::Cli;
-use testcontainers_modules::neo4j::Neo4j;
+use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j};
 
 let client = Cli::default();
 let container = client.run(Neo4j::default());
@@ -34,6 +32,22 @@ let auth_pass = container.image().password();
 
 This crate builds on top of the `neo4j` image from [testcontainers-module][__link2].
 It provides a few extension methods that are too specific to Neo4j to be included in the generic testcontainers module.
+
+This crate also exports a few types that are required to get you started without having to add extra dependencies to either `testcontainers-modules` or `testcontainers`:
+
+```rust
+// Those types are exported
+pub use testcontainers_modules::{
+    neo4j::{Neo4j, Neo4jImage},
+    testcontainers::clients,
+    testcontainers::RunnableImage,
+};
+```
+
+```rust
+// ... on your end: use the exported types
+use neo4j_testcontainers::{clients::Cli, Neo4j, RunnableImage};
+```
 
 ## Neo4j Version
 
@@ -70,9 +84,7 @@ Supported plugins are APOC, APOC Core, Bloom, Streams, Graph Data Science, and N
 In order to use Neo4j Enterprise Edition for the `testcontainer`, you can configure it on the `RunnableImage`:
 
 ```rust
-use neo4j_testcontainers::{Neo4jImageExt, Neo4jRunnableImageExt};
-use testcontainers::{clients::Cli, RunnableImage};
-use testcontainers_modules::neo4j::Neo4j;
+use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j, RunnableImage};
 
 let client = Cli::default();
 let neo4j = RunnableImage::from(Neo4j::default());

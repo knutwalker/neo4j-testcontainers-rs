@@ -1,7 +1,5 @@
-use neo4j_testcontainers::{Neo4jImageExt, Neo4jRunnableImageExt};
+use neo4j_testcontainers::{clients::Cli, prelude::*, Neo4j, RunnableImage};
 use neo4rs::Graph;
-use testcontainers::{clients::Cli, RunnableImage};
-use testcontainers_modules::neo4j::Neo4j;
 
 #[tokio::test]
 async fn runs_enterprise() {

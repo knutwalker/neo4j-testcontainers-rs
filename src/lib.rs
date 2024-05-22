@@ -37,10 +37,17 @@
 use std::io::BufRead;
 use std::{borrow::Cow, env::var};
 use testcontainers_modules::testcontainers::Container;
-use testcontainers_modules::{
+pub use testcontainers_modules::{
     neo4j::{Neo4j, Neo4jImage},
+    testcontainers::clients,
     testcontainers::RunnableImage,
 };
+
+/// The prelude only exports the extension traits, so that you can selectively import from the root
+/// module while still being able to wildcard-use all the extension traits.
+pub mod prelude {
+    pub use super::{Neo4jExt, Neo4jImageExt, Neo4jRunnableImageExt};
+}
 
 /// Extension trait for the [`Neo4j`] type, adding a [`Neo4jExt::from_env`] constructor.
 pub trait Neo4jExt: Sized {
