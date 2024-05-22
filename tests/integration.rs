@@ -1,11 +1,12 @@
-use neo4j_testcontainers::{Neo4j, Neo4jImageExt as _};
+use neo4j_testcontainers::Neo4jImageExt;
 use neo4rs::Graph;
 use testcontainers::clients::Cli;
+use testcontainers_modules::neo4j::Neo4j;
 
 #[tokio::test]
 async fn it_works() {
-    let docker = Cli::default();
-    let container = docker.run(Neo4j::default());
+    let client = Cli::default();
+    let container = client.run(Neo4j::default());
 
     let uri = container.image().bolt_uri_ipv4();
     assert!(uri.starts_with("bolt://"));

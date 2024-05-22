@@ -1,6 +1,6 @@
 [package]
 name = "neo4j_testcontainers"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Paul Horn <paul.horn@neo4j.com>", "Neo4j Labs <devrel@neo4j.com>"]
 edition = "2021"
 description = "Neo4j module for testcontainers-rs"
@@ -13,9 +13,9 @@ categories = ["development-tools::testing"]
 rust-version = "1.63.0"
 
 [dependencies]
-testcontainers = { version = "0.15.0" }
 testcontainers-modules = { version = "0.1.4", features = ["neo4j"] }
 
 [dev-dependencies]
-neo4rs = "0.6.2"
-tokio = { version = "1.28.2", features = ["test-util", "macros"] }
+neo4rs = "0.7.0"
+testcontainers = { version = "0.15.0" }
+tokio = { version = "1.5.0", features = ["test-util", "macros"] }
